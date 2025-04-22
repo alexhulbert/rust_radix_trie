@@ -38,6 +38,10 @@ where
         get_ancestor(self, nv)
     }
     #[inline]
+    pub fn get_ancestor_values(&self, nv: &Nibblet) -> Vec<&V> {
+        get_ancestor_values(self, nv)
+    }
+    #[inline]
     pub fn get_raw_ancestor(&self, nv: &Nibblet) -> (&TrieNode<K, V>, usize) {
         get_raw_ancestor(self, nv)
     }
@@ -344,6 +348,62 @@ where
             return (ancestor, depth);
         }
     }
+}
+/// Get all ancestor values of a node.
+#[inline]
+fn get_ancestor_values<'a, K, V>(trie: &'a TrieNode<K, V>, nv: &Nibblet) -> Vec<&'a V>
+where
+    K: TrieKey,
+{
+    let mut values = Vec::new();
+
+    if nv.is_empty() {
+        if let Some(val) = trie.value() {
+            values.push(val);
+        }
+        return values;
+    }
+
+    let mut prev = trie;
+    let mut depth = 0;
+
+    // Add root node value if it exists
+    if let Some(val) = prev.value() {
+        values.push(val);
+    }
+
+    loop {
+        if depth >= nv.len() {
+            break;
+        }
+
+        let bucket = nv.get(depth) as usize;
+        let current = prev;
+        if let Some(ref child) = current.children[bucket] {
+            match match_keys(depth, nv, &child.key) {
+                KeyMatch::Full => {
+                    if let Some(val) = child.value() {
+                        values.push(val);
+                    }
+                    break;
+                }
+                KeyMatch::FirstPrefix | KeyMatch::Partial(_) => {
+                    break;
+                }
+                KeyMatch::SecondPrefix => {
+                    depth += child.key.len();
+                    if let Some(val) = child.value() {
+                        values.push(val);
+                    }
+                    prev = child;
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
+    values
 }
 
 // Type used to propogate subtrie construction instructions to the top-level `get_raw_descendant`

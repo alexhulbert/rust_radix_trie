@@ -170,6 +170,23 @@ where
         ancestor_node.as_subtrie(nv)
     }
 
+    /// Fetch all ancestor values for a given key.
+    ///
+    /// If `key` is encoded as byte-vector `b`, return values from all nodes in the tree
+    /// such that the node's key's byte-vector is a prefix of `b`.
+    ///
+    /// The key may be any borrowed form of the trie's key type, but TrieKey on the borrowed
+    /// form *must* match those for the key type.
+    #[inline]
+    pub fn get_ancestor_values<Q: ?Sized>(&self, key: &Q) -> Vec<&V>
+    where
+        K: Borrow<Q>,
+        Q: TrieKey,
+    {
+        let key_fragments = key.encode();
+        self.node.get_ancestor_values(&key_fragments)
+    }
+
     /// Fetch the closest descendant for a given key.
     ///
     /// If the key is in the trie, this is the same as `subtrie`.
